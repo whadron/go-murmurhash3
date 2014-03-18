@@ -3,10 +3,11 @@ package murmurhash3
 import (
   "testing"
   "encoding/binary"
-  //"crypto/rand"
+  "crypto/rand"
+  "bytes"
 )
 
-// Makes sure that the hash produces a correct result
+// Makes sure that the hash produces a correct result according to the spec
 func TestValidity(t *testing.T) {
   const (
     expected  uint32 = 0x6384BA69
@@ -34,13 +35,41 @@ func TestValidity(t *testing.T) {
   }
 }
 
+// Tests if continous Writes result in the same hash as a single Write
+func TestStreaming(t *testing.T) {
+  r := make([]byte, 4096)
+
+  // Add random bytes to r
+  _, err := rand.Read(r)
+  if err != nil {
+    t.Error("rand failed.....")
+    return
+  }
+
+  // Do a single-Write hash
+  h1 := New(uint64(0))
+  h1.Write(r)
+  single := h1.Sum(nil)
+
+  // Do a multi-Write hash
+  middle := len(r) / 2
+  h2 := New(uint64(0))
+  h2.Write(r[:middle])
+  h2.Write(r[middle:])
+  multi := h2.Sum(nil)
+
+  // The hashes from both operations should be the same
+  if !bytes.Equal(single, multi) {
+    t.Errorf("single: 0x%x multi: 0x%x", single, multi)
+  }
+}
+
 func BenchmarkMurmur128(b *testing.B) {
   const keyBytes int64 = 128
   b.SetBytes(keyBytes)
   r := make([]byte, keyBytes)
   b.ResetTimer()
   for i := 0; i < b.N; i++ {
-    //binary.LittleEndian.PutUint64(r, uint64(i))
     h := New(uint64(0))
     h.Write(r)
     h.Sum(nil)
