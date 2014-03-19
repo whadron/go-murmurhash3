@@ -37,10 +37,10 @@ type murmur128 struct {
   tail      []byte
 }
 
-func New(seed uint64) Hash128 {
+func New(seed int) Hash128 {
   m := new(murmur128)
-  m.h1        = seed
-  m.h2        = seed
+  m.h1        = uint64(seed)
+  m.h2        = uint64(seed)
   m.size      = 128
   m.blockSize = 64
   m.tlen      = 0
@@ -103,23 +103,7 @@ func (m *murmur128) Write(p []byte) (n int, err error) {
     //k1, k2 := t[0], t[1]
     k1 := binary.LittleEndian.Uint64(p[(i*16):])
     k2 := binary.LittleEndian.Uint64(p[(i*16 + 8):])
-    k1 *= c1
-    k1 = (k1 << 31) | (k1 >> 33)
-    k1 *= c2
-    h1 ^= k1
-
-    h1 = (h1 << 27) | (h1 >> 37)
-    h1 += h2
-    h1 = h1*5 + 0x52dce729
-
-    k2 *= c2
-    k2 = (k2 << 33) | (k2 >> 31)
-    k2 *= c1
-    h2 ^= k2
-
-    h2 = (h2 << 31) | (h2 >> 33)
-    h2 += h1
-    h2 = h2*5 + 0x38495ab5
+    h1, h2 = body(h1, h2, k1, k2)
   }
 
   // Store result
