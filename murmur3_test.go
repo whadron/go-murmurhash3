@@ -1,4 +1,4 @@
-package murmurhash3
+package murmur3
 
 import (
   "testing"
@@ -8,27 +8,48 @@ import (
 )
 
 const (
-  expected  uint32 = 0x6384BA69
-  hashbytes int    = 128 / 8
+  expected128  uint32 = 0x6384BA69
+  expected32   uint32 = 0xB0F57EE3
+  hashbytes128 int    = 128 / 8
+  hashbytes32  int    = 32 / 8
 )
 
 // Makes sure that the hash produces a correct result according to the spec
 func TestValidity(t *testing.T) {
   key := make([]byte, 0, 256)
-  hashes := make([]byte, hashbytes*256)
+  hashes := make([]byte, hashbytes128*256)
   for i := 0; i < 256; i++ {
     key = append(key, byte(i))
-    h := New(256-i)
+    h := New128(256-i)
     h.Write(key[:i])
-    copy(hashes[(i*hashbytes):], h.Sum(nil))
+    copy(hashes[(i*hashbytes128):], h.Sum(nil))
   }
-  h := New(0)
+  h := New128(0)
   h.Write(hashes)
   final := h.Sum(nil)
   verification := binary.LittleEndian.Uint32(final)
-  if verification != expected {
+  if verification != expected128 {
     t.Errorf("Expected: 0x%x Verification: 0x%x",
-      expected, verification)
+      expected128, verification)
+  }
+}
+
+func TestValidity32(t *testing.T) {
+  key := make([]byte, 0, 256)
+  hashes := make([]byte, hashbytes32*256)
+  for i := 0; i < 256; i++ {
+    key = append(key, byte(i))
+    h := New32(256-i)
+    h.Write(key[:i])
+    copy(hashes[(i*hashbytes32):], h.Sum(nil))
+  }
+  h := New32(0)
+  h.Write(hashes)
+  final := h.Sum(nil)
+  verification := binary.LittleEndian.Uint32(final)
+  if verification != expected32 {
+    t.Errorf("Expected: 0x%x Verification: 0x%x",
+      expected32, verification)
   }
 }
 
@@ -36,11 +57,11 @@ func TestValidity(t *testing.T) {
 func TestStreaming(t *testing.T) {
   r := make([]byte, 4096)
   rand.Read(r)
-  h1 := New(0)
+  h1 := New128(0)
   h1.Write(r)
   single := h1.Sum(nil)
   middle := len(r) / 2
-  h2 := New(0)
+  h2 := New128(0)
   h2.Write(r[:middle])
   h2.Write(r[middle:])
   multi := h2.Sum(nil)
@@ -50,7 +71,7 @@ func TestStreaming(t *testing.T) {
 }
 
 // Benchmarks
-var bench = New(0)
+var bench = New128(0)
 var buf = make([]byte, 8192)
 
 func benchmarkSize(b *testing.B, size int64) {
