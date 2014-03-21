@@ -7,24 +7,21 @@ import (
   "bytes"
 )
 
+const (
+  expected  uint32 = 0x6384BA69
+  hashbytes int    = 128 / 8
+)
+
 // Makes sure that the hash produces a correct result according to the spec
 func TestValidity(t *testing.T) {
-  const (
-    expected  uint32 = 0x6384BA69
-    hashbytes int    = 128 / 8
-  )
-  var (
-    key       []byte = make([]byte, 0, 256)
-    hashes    []byte = make([]byte, hashbytes*256)
-  )
-
+  key := make([]byte, 0, 256)
+  hashes := make([]byte, hashbytes*256)
   for i := 0; i < 256; i++ {
     key = append(key, byte(i))
     h := New(256-i)
     h.Write(key[:i])
     copy(hashes[(i*hashbytes):], h.Sum(nil))
   }
-
   h := New(0)
   h.Write(hashes)
   final := h.Sum(nil)
@@ -39,22 +36,18 @@ func TestValidity(t *testing.T) {
 func TestStreaming(t *testing.T) {
   r := make([]byte, 4096)
   rand.Read(r)
-
   h1 := New(0)
   h1.Write(r)
   single := h1.Sum(nil)
-
   middle := len(r) / 2
   h2 := New(0)
   h2.Write(r[:middle])
   h2.Write(r[middle:])
   multi := h2.Sum(nil)
-
   if !bytes.Equal(single, multi) {
     t.Errorf("Single: 0x%x Multi: 0x%x", single, multi)
   }
 }
-
 
 // Benchmarks
 var bench = New(0)
