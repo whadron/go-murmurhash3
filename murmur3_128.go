@@ -1,5 +1,5 @@
 // Package murmur3 implements the murmur3 hash algorithm
-package murmur3
+package murmurhash3
 
 import (
   "encoding/binary"

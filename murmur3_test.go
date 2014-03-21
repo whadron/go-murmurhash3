@@ -1,4 +1,4 @@
-package murmur3
+package murmurhash3
 
 import (
   "testing"
