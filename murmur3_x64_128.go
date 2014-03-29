@@ -3,46 +3,39 @@ package murmurhash3
 
 import (
   "encoding/binary"
-  "hash"
 )
 
 const (
-  c1_128       uint64 = 0x87c37b91114253d5
-  c2_128       uint64 = 0x4cf5ad432745937f
-  size128      int    = 128
-  blockSize128 int    = 16
+  c1_x64_128        uint64 = 0x87c37b91114253d5
+  c2_x64_128        uint64 = 0x4cf5ad432745937f
+  size_x64_128      int    = 128
+  blockSize_x64_128 int    = 16
 )
 
-// 128-bit Hash interface
-type Hash128 interface {
-  hash.Hash
-  Sum128() []byte
-}
-
-type digest128 struct {
+type digest_x64_128 struct {
   h1        uint64
   h2        uint64
   tlen      int
   tail      []byte
 }
 
-func New128(seed int) Hash128 {
-  return &digest128{uint64(seed), uint64(seed), 0, nil}
+func New_x64_128(seed int) Hash128 {
+  return &digest_x64_128{uint64(seed), uint64(seed), 0, nil}
 }
 
-func body(h1, h2, k1, k2 uint64) (uint64, uint64) {
-  k1 *= c1_128
+func body_x64_128(h1, h2, k1, k2 uint64) (uint64, uint64) {
+  k1 *= c1_x64_128
   k1 = (k1 << 31) | (k1 >> 33)
-  k1 *= c2_128
+  k1 *= c2_x64_128
   h1 ^= k1
 
   h1 = (h1 << 27 | h1 >> 37)
   h1 += h2
   h1 = h1*5 + 0x52dce729
 
-  k2 *= c2_128
+  k2 *= c2_x64_128
   k2 = (k2 << 33 | k2 >> 31)
-  k2 *= c1_128
+  k2 *= c1_x64_128
   h2 ^= k2
 
   h2 = (h2 << 31 | h2 >> 33)
@@ -53,7 +46,7 @@ func body(h1, h2, k1, k2 uint64) (uint64, uint64) {
 }
 
 // TODO: Should return err sometimes
-func (m *digest128) Write(p []byte) (n int, err error) {
+func (m *digest_x64_128) Write(p []byte) (n int, err error) {
   h1, h2 := m.h1, m.h2
   plen := len(p)
   nblocks := plen/16
@@ -63,14 +56,14 @@ func (m *digest128) Write(p []byte) (n int, err error) {
     m.tail = append(m.tail, head...)
     k1 := binary.LittleEndian.Uint64(m.tail[:8])
     k2 := binary.LittleEndian.Uint64(m.tail[8:])
-    h1, h2 = body(h1, h2, k1, k2)
+    h1, h2 = body_x64_128(h1, h2, k1, k2)
     p = p[hlen:]
     m.tail = nil
   }
   for i := 0; i < nblocks; i++ {
     k1 := binary.LittleEndian.Uint64(p[(i*16):])
     k2 := binary.LittleEndian.Uint64(p[(i*16 + 8):])
-    h1, h2 = body(h1, h2, k1, k2)
+    h1, h2 = body_x64_128(h1, h2, k1, k2)
   }
   m.h1 = h1
   m.h2 = h2
@@ -81,7 +74,7 @@ func (m *digest128) Write(p []byte) (n int, err error) {
   return plen, nil
 }
 
-func (m *digest128) processTail() (uint64, uint64) {
+func (m *digest_x64_128) processTail() (uint64, uint64) {
   tail := m.tail
   h1, h2 := m.h1, m.h2
   k1 := uint64(0)
@@ -107,9 +100,9 @@ func (m *digest128) processTail() (uint64, uint64) {
     fallthrough
   case 9:
     k2 ^= uint64(tail[8])  << 0
-    k2 *= c2_128
+    k2 *= c2_x64_128
     k2 = (k2 << 33) | (k2 >> 31)
-    k2 *= c1_128
+    k2 *= c1_x64_128
     h2 ^= k2
     fallthrough
   case 8:
@@ -135,9 +128,9 @@ func (m *digest128) processTail() (uint64, uint64) {
     fallthrough
   case 1:
     k1 ^= uint64(tail[0])  << 0
-    k1 *= c1_128
+    k1 *= c1_x64_128
     k1 = (k1 << 31) | (k1 >> 33)
-    k1 *= c2_128
+    k1 *= c2_x64_128
     h1 ^= k1
   }
   return h1, h2
@@ -157,7 +150,7 @@ func final(h1, h2, tlen uint64) (uint64, uint64) {
 }
 
 // Returns the hash of the data input into the Hash so far
-func (m *digest128) Sum(in []byte) []byte {
+func (m *digest_x64_128) Sum(in []byte) []byte {
   h1, h2 := m.processTail()
   h1, h2 = final(h1, h2, uint64(m.tlen))
   return append(in,
@@ -168,30 +161,21 @@ func (m *digest128) Sum(in []byte) []byte {
   )
 }
 
-func (m *digest128) Sum128() []byte {
+func (m *digest_x64_128) Sum128() []byte {
   bytes := make([]byte, 16)
   return m.Sum(bytes)
 }
 
-func (m *digest128) Reset() {
+func (m *digest_x64_128) Reset() {
   m.h1   = 0
   m.h2   = 0
   m.tlen = 0
   m.tail = nil
 }
 
-func (m *digest128) Size() int { return size128 }
+func (m *digest_x64_128) Size() int { return size_x64_128 }
 
-func (m *digest128) BlockSize() int { return blockSize128 }
-
-func fmix64(k uint64) uint64 {
-  k ^= k >> 33
-  k *= 0xff51afd7ed558ccd
-  k ^= k >> 33
-  k *= 0xc4ceb9fe1a85ec53
-  k ^= k >> 33
-  return k
-}
+func (m *digest_x64_128) BlockSize() int { return blockSize_x64_128 }
 
 
 
