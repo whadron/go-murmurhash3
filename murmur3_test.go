@@ -74,8 +74,6 @@ func TestValidity_x64_128(t *testing.T) {
   }
 }
 
-
-
 // Tests if continous Writes result in the same hash as a single Write
 func TestStreaming(t *testing.T) {
   r := make([]byte, 4096)
